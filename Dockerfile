@@ -4,8 +4,13 @@
 FROM node:22-alpine AS frontend-builder
 
 WORKDIR /build
+
+# 使用国内淘宝/npmmirror镜像源加速
+RUN npm config set registry https://registry.npmmirror.com
+
 COPY frontend/package*.json ./
 RUN npm install
+
 COPY frontend/ ./
 RUN npm run build
 
@@ -16,15 +21,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python requirements
+# Python依赖全部具备预编译二进制wheel包，无需缓慢的 gcc 编译！
 COPY backend/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+
+# 使用清华大学开源镜像源加速 pip 安装
+RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
 # Copy backend source code & docs
 COPY backend/ ./
