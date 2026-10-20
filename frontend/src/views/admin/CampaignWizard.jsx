@@ -90,9 +90,7 @@ export default function CampaignWizard() {
     formData.append('file', file);
     setUploadingCover(true);
     try {
-      const res = await api.post('/media/upload/image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await api.post('/media/upload/image', formData);
       setCandCoverUrl(res.data.url);
     } catch (err) {
       alert(err.response?.data?.detail || '封面上传失败');
@@ -110,9 +108,7 @@ export default function CampaignWizard() {
     formData.append('file', file);
     setUploadingMedia(true);
     try {
-      const res = await api.post(endpoint, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await api.post(endpoint, formData);
       setCandMediaUrl(res.data.url);
     } catch (err) {
       alert(err.response?.data?.detail || '媒体文件上传失败');

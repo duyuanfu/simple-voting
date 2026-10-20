@@ -1,11 +1,10 @@
 import React from 'react';
-import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Vote, LayoutDashboard, LogOut, PlusCircle, Building } from 'lucide-react';
 
 export default function AdminLayout() {
   const { tenant, logout, isAuthenticated, loading } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
 
   if (loading) {
@@ -17,8 +16,7 @@ export default function AdminLayout() {
   }
 
   if (!isAuthenticated) {
-    navigate('/admin/login');
-    return null;
+    return <Navigate to="/admin/login" replace />;
   }
 
   return (

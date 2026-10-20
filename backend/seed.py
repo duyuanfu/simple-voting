@@ -12,8 +12,12 @@ def seed():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
-    workspace_root = Path(__file__).resolve().parent.parent
-    docs_dir = workspace_root / "docs"
+    # Robust docs resolution (works locally and in Docker)
+    docs_dir = Path(__file__).resolve().parent / "docs"
+    if not docs_dir.exists():
+        docs_dir = Path(__file__).resolve().parent.parent / "docs"
+    if not docs_dir.exists():
+        docs_dir = Path("/app/docs")
 
     try:
         # 1. Create or get demo tenant
@@ -114,6 +118,15 @@ def seed():
 
             db.commit()
             print(f"[Seed] Created Video Campaign: {video_campaign.title} (Code: {video_campaign.code})")
+        else:
+            # Repair existing candidates if their media_url was missing
+            for idx, cand in enumerate(video_campaign.candidates, 1):
+                if not cand.media_url and sample_videos.get(idx):
+                    cand.media_url = sample_videos.get(idx)
+                if not cand.cover_url and sample_covers.get(idx):
+                    cand.cover_url = sample_covers.get(idx)
+            db.commit()
+            print(f"[Seed] Verified and repaired video campaign media URLs.")
 
         # 3. Create a Demo Image Campaign (一人多票：3票)
         image_campaign = db.query(Campaign).filter(
@@ -153,6 +166,13 @@ def seed():
                 db.add(cand)
             db.commit()
             print(f"[Seed] Created Image Campaign: {image_campaign.title} (Code: {image_campaign.code})")
+        else:
+            for idx, cand in enumerate(image_campaign.candidates, 1):
+                if not cand.cover_url and sample_covers.get(idx):
+                    cand.cover_url = sample_covers.get(idx)
+                    cand.media_url = sample_covers.get(idx)
+            db.commit()
+            print(f"[Seed] Verified and repaired image campaign media URLs.")
 
         # 4. Create a Demo Text Campaign
         text_campaign = db.query(Campaign).filter(
