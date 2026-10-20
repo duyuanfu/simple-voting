@@ -41,6 +41,29 @@ app.include_router(analytics.router, prefix=settings.API_V1_STR)
 def health_check():
     return {"status": "ok", "app": settings.PROJECT_NAME}
 
+# Mount Frontend SPA if dist or static directory exists
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from fastapi import HTTPException
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+if not STATIC_DIR.exists():
+    STATIC_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+
+if STATIC_DIR.exists() and (STATIC_DIR / "index.html").exists():
+    if (STATIC_DIR / "assets").exists():
+        app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend_spa(full_path: str):
+        if full_path.startswith("api/") or full_path == "api":
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+        target_file = STATIC_DIR / full_path
+        if target_file.exists() and target_file.is_file():
+            return FileResponse(target_file)
+        return FileResponse(STATIC_DIR / "index.html")
+
 if __name__ == "__main__":
     import uvicorn
     import os

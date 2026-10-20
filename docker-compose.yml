@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  voting-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: simple-voting
+    restart: always
+    ports:
+      # 映射到宿主机 127.0.0.1:8090，不占用对外公网端口，由宿主机已有的 Nginx 统一反代
+      - "127.0.0.1:8090:8090"
+    environment:
+      - PORT=8090
+      - SECRET_KEY=simple-voting-production-secret-2026
+    volumes:
+      # 持久化存储 SQLite 数据库与上传的视频图片文件
+      - ./data:/app/data
+      - ./uploads:/app/uploads
