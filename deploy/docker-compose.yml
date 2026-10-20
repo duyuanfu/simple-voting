@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  voting-backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
+    container_name: voting-backend
+    restart: always
+    ports:
+      # 仅绑定到本机 127.0.0.1:8001，通过宿主机已有的 Nginx 代理，绝不干扰服务器上其他服务
+      - "127.0.0.1:8001:8001"
+    environment:
+      - PORT=8001
+      - SECRET_KEY=your-production-secret-key-change-it-2026
+    volumes:
+      - ../backend/data:/app/data
+      - ../backend/uploads:/app/uploads
