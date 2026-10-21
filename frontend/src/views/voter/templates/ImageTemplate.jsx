@@ -5,7 +5,7 @@ import BatchVoteBar from '../components/BatchVoteBar';
 import IdentityModal from '../components/IdentityModal';
 
 export default function ImageTemplate() {
-  const { campaign, votedCandidateIds, remainingVotes, submitVote } = useVoting();
+  const { campaign, votedCandidateIds, remainingVotes, submitVote, isVotingOpen, votingStatus } = useVoting();
   const [selectedIds, setSelectedIds] = useState([]);
   const [previewImage, setPreviewImage] = useState(null);
   const [isIdentityModalOpen, setIsIdentityModalOpen] = useState(false);
@@ -14,6 +14,10 @@ export default function ImageTemplate() {
   const candidates = campaign?.candidates || [];
 
   const handleToggleSelect = (candId) => {
+    if (!isVotingOpen) {
+      alert(votingStatus?.reason || '当前不在投票时间内');
+      return;
+    }
     if (votedCandidateIds.includes(candId)) return;
 
     if (selectedIds.includes(candId)) {
@@ -28,6 +32,10 @@ export default function ImageTemplate() {
   };
 
   const handleTriggerSubmit = () => {
+    if (!isVotingOpen) {
+      alert(votingStatus?.reason || '当前不在投票时间内');
+      return;
+    }
     if (selectedIds.length === 0) return;
     if (campaign.is_realname) {
       setIsIdentityModalOpen(true);

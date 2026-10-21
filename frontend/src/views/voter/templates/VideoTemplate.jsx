@@ -6,7 +6,7 @@ import BatchVoteBar from '../components/BatchVoteBar';
 import IdentityModal from '../components/IdentityModal';
 
 export default function VideoTemplate() {
-  const { campaign, votedCandidateIds, remainingVotes, submitVote } = useVoting();
+  const { campaign, votedCandidateIds, remainingVotes, submitVote, isVotingOpen, votingStatus } = useVoting();
   const [activeVideo, setActiveVideo] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [votingCandidate, setVotingCandidate] = useState(null);
@@ -39,6 +39,10 @@ export default function VideoTemplate() {
 
   // Toggle selection for batch mode
   const handleToggleSelect = (candId) => {
+    if (!isVotingOpen) {
+      alert(votingStatus?.reason || '当前不在投票时间内');
+      return;
+    }
     if (votedCandidateIds.includes(candId)) return;
 
     if (selectedIds.includes(candId)) {
@@ -54,6 +58,10 @@ export default function VideoTemplate() {
 
   // Instant single vote initiation
   const handleInitiateVote = (cand) => {
+    if (!isVotingOpen) {
+      alert(votingStatus?.reason || '当前不在投票时间内');
+      return;
+    }
     if (votedCandidateIds.includes(cand.id)) {
       alert('您已支持过该作品，不可重复投票');
       return;
@@ -74,6 +82,10 @@ export default function VideoTemplate() {
 
   // Batch vote initiation
   const handleTriggerBatchSubmit = () => {
+    if (!isVotingOpen) {
+      alert(votingStatus?.reason || '当前不在投票时间内');
+      return;
+    }
     if (selectedIds.length === 0) return;
     if (campaign.is_realname) {
       setIsIdentityModalOpen(true);
@@ -198,17 +210,21 @@ export default function VideoTemplate() {
 
                   {isBatchMode ? (
                     <button
-                      disabled={isVoted || (remainingVotes <= 0 && !isSelected)}
+                      disabled={!isVotingOpen || isVoted || (remainingVotes <= 0 && !isSelected)}
                       onClick={() => handleToggleSelect(cand.id)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition ${
-                        isVoted
+                        !isVotingOpen
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                          : isVoted
                           ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                           : isSelected
                           ? 'bg-blue-600 text-white shadow-sm'
                           : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                       }`}
                     >
-                      {isVoted ? (
+                      {!isVotingOpen ? (
+                        <>{votingStatus?.status === 'not_started' ? '未开始' : votingStatus?.status === 'ended' ? '已截止' : '已暂停'}</>
+                      ) : isVoted ? (
                         <>已支持</>
                       ) : isSelected ? (
                         <>
@@ -224,17 +240,21 @@ export default function VideoTemplate() {
                     </button>
                   ) : (
                     <button
-                      disabled={isVoted || remainingVotes <= 0 || submitting}
+                      disabled={!isVotingOpen || isVoted || remainingVotes <= 0 || submitting}
                       onClick={() => handleInitiateVote(cand)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition ${
-                        isVoted
+                        !isVotingOpen
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                          : isVoted
                           ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                           : remainingVotes <= 0
                           ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                           : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
                       }`}
                     >
-                      {isVoted ? (
+                      {!isVotingOpen ? (
+                        <>{votingStatus?.status === 'not_started' ? '未开始' : votingStatus?.status === 'ended' ? '已截止' : '已暂停'}</>
+                      ) : isVoted ? (
                         <>
                           <Check className="w-3 h-3" />
                           已支持
@@ -300,10 +320,12 @@ export default function VideoTemplate() {
 
                 {isBatchMode ? (
                   <button
-                    disabled={votedCandidateIds.includes(activeVideo.id)}
+                    disabled={!isVotingOpen || votedCandidateIds.includes(activeVideo.id)}
                     onClick={() => handleToggleSelect(activeVideo.id)}
                     className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm transition flex-shrink-0 ${
-                      votedCandidateIds.includes(activeVideo.id)
+                      !isVotingOpen
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : votedCandidateIds.includes(activeVideo.id)
                         ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                         : selectedIds.includes(activeVideo.id)
                         ? 'bg-blue-600 text-white'
@@ -312,7 +334,9 @@ export default function VideoTemplate() {
                   >
                     <Check className="w-3.5 h-3.5" />
                     <span>
-                      {votedCandidateIds.includes(activeVideo.id)
+                      {!isVotingOpen
+                        ? (votingStatus?.status === 'not_started' ? '未开始' : votingStatus?.status === 'ended' ? '已截止' : '已暂停')
+                        : votedCandidateIds.includes(activeVideo.id)
                         ? '已投'
                         : selectedIds.includes(activeVideo.id)
                         ? '已勾选'
@@ -321,10 +345,12 @@ export default function VideoTemplate() {
                   </button>
                 ) : (
                   <button
-                    disabled={votedCandidateIds.includes(activeVideo.id) || remainingVotes <= 0 || submitting}
+                    disabled={!isVotingOpen || votedCandidateIds.includes(activeVideo.id) || remainingVotes <= 0 || submitting}
                     onClick={() => handleInitiateVote(activeVideo)}
                     className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm transition flex-shrink-0 ${
-                      votedCandidateIds.includes(activeVideo.id)
+                      !isVotingOpen
+                        ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                        : votedCandidateIds.includes(activeVideo.id)
                         ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                         : remainingVotes <= 0
                         ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
@@ -333,7 +359,9 @@ export default function VideoTemplate() {
                   >
                     <ThumbsUp className="w-3.5 h-3.5" />
                     <span>
-                      {votedCandidateIds.includes(activeVideo.id)
+                      {!isVotingOpen
+                        ? (votingStatus?.status === 'not_started' ? '活动未开始' : votingStatus?.status === 'ended' ? '活动已截止' : '活动已暂停')
+                        : votedCandidateIds.includes(activeVideo.id)
                         ? '已投'
                         : `投 Ta (余 ${remainingVotes})`}
                     </span>

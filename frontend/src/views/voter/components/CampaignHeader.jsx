@@ -3,35 +3,53 @@ import { useVoting } from '../../../context/VotingContext';
 import { Clock, ShieldCheck, ChevronDown, ChevronUp, CheckCircle, Info } from 'lucide-react';
 
 export default function CampaignHeader() {
-  const { campaign, remainingVotes, votedCandidateIds } = useVoting();
+  const { campaign, remainingVotes, votedCandidateIds, votingStatus, isVotingOpen } = useVoting();
   const [expanded, setExpanded] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
 
   useEffect(() => {
-    if (!campaign?.end_time) return;
+    if (!campaign?.end_time && !campaign?.start_time) return;
 
     const calculateTime = () => {
       const now = new Date().getTime();
-      const end = new Date(campaign.end_time).getTime();
-      const diff = end - now;
 
-      if (diff <= 0) {
-        setTimeLeft('活动已截止');
-        return;
+      // Check if start time is future
+      if (campaign.start_time) {
+        const startMs = new Date(campaign.start_time.replace(' ', 'T')).getTime();
+        if (now < startMs) {
+          const diff = startMs - now;
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+          const minutes = Math.floor((diff / 1000 / 60) % 60);
+          const seconds = Math.floor((diff / 1000) % 60);
+          setTimeLeft(`距离开始: ${days > 0 ? `${days}天 ` : ''}${hours}小时${minutes}分${seconds}秒`);
+          return;
+        }
       }
 
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-      const minutes = Math.floor((diff / 1000 / 60) % 60);
-      const seconds = Math.floor((diff / 1000) % 60);
+      // Check end time
+      if (campaign.end_time) {
+        const endMs = new Date(campaign.end_time.replace(' ', 'T')).getTime();
+        const diff = endMs - now;
 
-      setTimeLeft(`${days > 0 ? `${days}天 ` : ''}${hours}小时${minutes}分${seconds}秒`);
+        if (diff <= 0) {
+          setTimeLeft('活动已截止');
+          return;
+        }
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / 1000 / 60) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+
+        setTimeLeft(`距离结束: ${days > 0 ? `${days}天 ` : ''}${hours}小时${minutes}分${seconds}秒`);
+      }
     };
 
     calculateTime();
     const timer = setInterval(calculateTime, 1000);
     return () => clearInterval(timer);
-  }, [campaign?.end_time]);
+  }, [campaign?.start_time, campaign?.end_time]);
 
   if (!campaign) return null;
 
@@ -42,6 +60,14 @@ export default function CampaignHeader() {
         {campaign.banner_url && (
           <div className="mb-4 rounded-2xl overflow-hidden max-h-48 shadow-sm">
             <img src={campaign.banner_url} alt={campaign.title} className="w-full h-full object-cover" />
+          </div>
+        )}
+
+        {/* Time Window Warning Banner */}
+        {!isVotingOpen && (
+          <div className="mb-4 p-3.5 rounded-xl border flex items-center gap-2.5 text-xs font-semibold shadow-sm animate-pulse bg-amber-50 border-amber-200 text-amber-800">
+            <Clock className="w-4 h-4 flex-shrink-0 text-amber-600" />
+            <span>{votingStatus?.reason || '当前不在活动投票时间内，仅支持作品观摩'}</span>
           </div>
         )}
 

@@ -21,10 +21,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# 替换为清华大学 Debian 镜像源并安装 ffmpeg（用于服务端视频 +faststart 首帧秒开流式优化）
+# 替换为清华大学 Debian 镜像源并安装 ffmpeg 与 tzdata（用于服务端视频 +faststart 首帧秒开与北京时区同步）
 RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get update && apt-get install -y --no-install-recommends ffmpeg && \
+    apt-get update && apt-get install -y --no-install-recommends ffmpeg tzdata && \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo "Asia/Shanghai" > /etc/timezone && \
     rm -rf /var/lib/apt/lists/*
+
+ENV TZ=Asia/Shanghai
 
 # Python依赖全部具备预编译二进制wheel包，无需缓慢的 gcc 编译！
 COPY backend/requirements.txt ./

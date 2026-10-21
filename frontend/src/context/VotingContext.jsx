@@ -122,6 +122,40 @@ export const VotingProvider = ({ code, children }) => {
     return res.data;
   };
 
+  const getVotingStatus = () => {
+    if (!campaign) return { isOpen: false, status: 'loading', reason: '正在加载活动...' };
+    if (campaign.status === 'paused') return { isOpen: false, status: 'paused', reason: '活动已暂停投票' };
+    if (campaign.status === 'draft') return { isOpen: false, status: 'draft', reason: '活动筹备中，尚未开放投票' };
+    if (campaign.status === 'ended') return { isOpen: false, status: 'ended', reason: '活动投票已结束' };
+
+    const now = Date.now();
+    if (campaign.start_time) {
+      const startMs = new Date(campaign.start_time.replace(' ', 'T')).getTime();
+      if (now < startMs) {
+        return { 
+          isOpen: false, 
+          status: 'not_started', 
+          reason: `活动投票尚未开始（开启时间: ${campaign.start_time.substring(0, 16)}）` 
+        };
+      }
+    }
+
+    if (campaign.end_time) {
+      const endMs = new Date(campaign.end_time.replace(' ', 'T')).getTime();
+      if (now > endMs) {
+        return { 
+          isOpen: false, 
+          status: 'ended', 
+          reason: `活动投票已截止（截止时间: ${campaign.end_time.substring(0, 16)}）` 
+        };
+      }
+    }
+
+    return { isOpen: true, status: 'open', reason: '' };
+  };
+
+  const votingStatus = getVotingStatus();
+
   return (
     <VotingContext.Provider
       value={{
@@ -135,7 +169,9 @@ export const VotingProvider = ({ code, children }) => {
         savedExtraInfo,
         submitVote,
         fetchCampaign,
-        fetchVoterStatus
+        fetchVoterStatus,
+        votingStatus,
+        isVotingOpen: votingStatus.isOpen
       }}
     >
       {children}

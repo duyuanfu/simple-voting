@@ -12,6 +12,7 @@ services:
       - "127.0.0.1:8090:8090"
     environment:
       - PORT=8090
+      - TZ=Asia/Shanghai
       - SECRET_KEY=simple-voting-production-secret-2026
     volumes:
       # 持久化存储 SQLite 数据库与上传的视频图片文件

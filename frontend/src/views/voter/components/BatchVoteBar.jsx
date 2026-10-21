@@ -3,7 +3,7 @@ import { useVoting } from '../../../context/VotingContext';
 import { Check, ArrowRight } from 'lucide-react';
 
 export default function BatchVoteBar({ selectedIds, onTriggerSubmit, candidates = [] }) {
-  const { remainingVotes } = useVoting();
+  const { remainingVotes, isVotingOpen, votingStatus } = useVoting();
 
   if (selectedIds.length === 0) return null;
 
@@ -23,10 +23,15 @@ export default function BatchVoteBar({ selectedIds, onTriggerSubmit, candidates 
         </div>
 
         <button
+          disabled={!isVotingOpen}
           onClick={onTriggerSubmit}
-          className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 flex items-center gap-1.5 transition active:scale-95"
+          className={`px-6 py-2.5 rounded-xl text-white font-semibold text-xs shadow-md flex items-center gap-1.5 transition active:scale-95 ${
+            !isVotingOpen
+              ? 'bg-slate-400 cursor-not-allowed shadow-none'
+              : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'
+          }`}
         >
-          <span>立即投票 ({selectedIds.length})</span>
+          <span>{!isVotingOpen ? (votingStatus?.status === 'not_started' ? '未开始' : '已截止') : `立即投票 (${selectedIds.length})`}</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

@@ -147,10 +147,15 @@ async def submit_vote(
         raise HTTPException(status_code=400, detail=status_text)
 
     now = datetime.now()
-    if campaign.start_time and now < campaign.start_time:
-        raise HTTPException(status_code=400, detail="活动投票尚未开始")
-    if campaign.end_time and now > campaign.end_time:
-        raise HTTPException(status_code=400, detail="活动投票已截止")
+    if campaign.start_time:
+        start_dt = campaign.start_time if isinstance(campaign.start_time, datetime) else datetime.fromisoformat(str(campaign.start_time))
+        if now < start_dt:
+            raise HTTPException(status_code=400, detail=f"活动投票尚未开始（开放时间: {start_dt.strftime('%Y-%m-%d %H:%M:%S')}）")
+
+    if campaign.end_time:
+        end_dt = campaign.end_time if isinstance(campaign.end_time, datetime) else datetime.fromisoformat(str(campaign.end_time))
+        if now > end_dt:
+            raise HTTPException(status_code=400, detail=f"活动投票已截止（截止时间: {end_dt.strftime('%Y-%m-%d %H:%M:%S')}）")
 
     # 3. Anti-brushing Layer: Daily IP Quota
     today_start = datetime.combine(date.today(), datetime.min.time())
