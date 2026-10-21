@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useVoting } from '../../../context/VotingContext';
 import { ShieldCheck, X, ArrowRight } from 'lucide-react';
 
@@ -34,9 +35,9 @@ export default function IdentityModal({ isOpen, onClose, onConfirm, candidateTit
     onConfirm(formData);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 relative animate-scale-up">
+  return createPortal(
+    <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-screen h-screen z-[100000] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 relative my-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1"
@@ -112,6 +113,7 @@ export default function IdentityModal({ isOpen, onClose, onConfirm, candidateTit
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
