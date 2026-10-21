@@ -1,11 +1,39 @@
 import os
 import uuid
 import re
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Tuple, Generator
 from fastapi import HTTPException, status, UploadFile
 from fastapi.responses import StreamingResponse, Response
 from app.core.config import settings
+
+def optimize_video_faststart(video_path: Path):
+    """
+    Relocate the moov atom to the beginning of the file for instant streaming.
+    Uses stream copy (-c copy) so no re-encoding occurs: takes <0.5s with zero quality loss.
+    """
+    ffmpeg_bin = shutil.which("ffmpeg")
+    if not ffmpeg_bin:
+        return
+    
+    tmp_path = video_path.with_name(f"fast_{video_path.name}")
+    try:
+        cmd = [
+            ffmpeg_bin, "-y", "-i", str(video_path),
+            "-c", "copy",
+            "-movflags", "+faststart",
+            str(tmp_path)
+        ]
+        res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
+        if res.returncode == 0 and tmp_path.exists() and tmp_path.stat().st_size > 0:
+            tmp_path.replace(video_path)
+            print(f"[FastStart] Successfully optimized: {video_path.name}")
+    except Exception as e:
+        print(f"[FastStart] Optimization skipped: {e}")
+        if tmp_path.exists():
+            tmp_path.unlink()
 
 def get_tenant_upload_dir(tenant_id: int, subfolder: str = "media") -> Path:
     target_dir = settings.UPLOAD_DIR / f"tenant_{tenant_id}" / subfolder
@@ -51,6 +79,9 @@ async def save_uploaded_file(file: UploadFile, tenant_id: int, is_video: bool = 
                     detail=f"文件体积超过限制 (最大允许 {max_size // (1024 * 1024)}MB)"
                 )
             f.write(chunk)
+
+    if is_video:
+        optimize_video_faststart(target_path)
             
     # Return relative URL that our media router serves
     return f"/api/v1/media/stream/tenant_{tenant_id}/{subfolder}/{unique_name}"
@@ -77,6 +108,7 @@ def range_requests_response(path: Path, range_header: str | None) -> Response:
                 "Content-Length": str(file_size),
                 "Accept-Ranges": "bytes",
                 "Content-Type": content_type,
+                "Cache-Control": "public, max-age=604800, immutable",
             }
         )
 
@@ -117,5 +149,6 @@ def range_requests_response(path: Path, range_header: str | None) -> Response:
             "Accept-Ranges": "bytes",
             "Content-Length": str(chunk_size),
             "Content-Type": content_type,
+            "Cache-Control": "public, max-age=604800, immutable",
         }
     )

@@ -21,6 +21,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# 替换为清华大学 Debian 镜像源并安装 ffmpeg（用于服务端视频 +faststart 首帧秒开流式优化）
+RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && apt-get install -y --no-install-recommends ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
+
 # Python依赖全部具备预编译二进制wheel包，无需缓慢的 gcc 编译！
 COPY backend/requirements.txt ./
 
