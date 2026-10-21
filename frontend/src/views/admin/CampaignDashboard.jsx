@@ -14,7 +14,8 @@ import {
   Sparkles,
   Trophy,
   Settings,
-  Layers
+  Layers,
+  FileSpreadsheet
 } from 'lucide-react';
 
 export default function CampaignDashboard() {
@@ -25,6 +26,7 @@ export default function CampaignDashboard() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [copied, setCopied] = useState(false);
   const [pulsingCandidateId, setPulsingCandidateId] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   // Fetch initial campaign & stats
   const fetchInitialData = async () => {
@@ -94,6 +96,29 @@ export default function CampaignDashboard() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleExportExcel = async () => {
+    try {
+      setExporting(true);
+      const res = await api.get(`/analytics/campaigns/${id}/export`, {
+        responseType: 'blob'
+      });
+      const blob = new Blob([res.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `campaign_${campaign?.code || id}_report.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      alert('导出大屏报表失败');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (!stats || !campaign) {
     return (
       <div className="py-24 flex justify-center items-center">
@@ -157,6 +182,15 @@ export default function CampaignDashboard() {
             <FileText className="w-3.5 h-3.5" />
             投票审计流水
           </Link>
+          <button
+            onClick={handleExportExcel}
+            disabled={exporting}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition disabled:opacity-50"
+            title="一键导出包含作品排名、分类透视和明细流水的标准多Sheet Excel"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            {exporting ? '导出中...' : '一键导出大屏数据'}
+          </button>
         </div>
       </div>
 

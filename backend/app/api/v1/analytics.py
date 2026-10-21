@@ -320,12 +320,16 @@ def export_campaign_excel(
     if not dimension_fields:
         dimension_fields = [{"key": "unit", "label": "所属单位"}]
 
+    import re
     cand_titles = [c.title for c in candidates]
 
-    for dim in dimension_fields:
+    for idx, dim in enumerate(dimension_fields, 1):
         dim_key = dim.get("key")
         dim_label = str(dim.get("label") or dim_key).strip()
-        sheet_title = f"{dim_label[:12]}透视矩阵"
+        clean_label = re.sub(r'[\\/*?:\[\]]', '', dim_label)[:20]
+        sheet_title = f"{clean_label}透视矩阵"
+        if sheet_title in wb.sheetnames:
+            sheet_title = f"{clean_label[:15]}_{idx}透视矩阵"
         ws_dim = wb.create_sheet(title=sheet_title)
         ws_dim.append([dim_label] + cand_titles + ["该分类总投出票数"])
         for col_idx in range(1, len(cand_titles) + 3):
