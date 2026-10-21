@@ -504,6 +504,15 @@ export default function CampaignWizard() {
                             />
                             必填
                           </label>
+                          <label className="flex items-center gap-1.5 text-xs text-blue-700 font-medium cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={f.enable_analytics !== false}
+                              onChange={(e) => updateField(idx, { enable_analytics: e.target.checked })}
+                              className="rounded border-slate-300 text-blue-600"
+                            />
+                            纳入大屏与报表统计汇总
+                          </label>
                         </div>
                       </div>
 
@@ -511,9 +520,9 @@ export default function CampaignWizard() {
                         <div className="w-full sm:w-auto flex-1">
                           <input
                             type="text"
-                            value={Array.isArray(f.options) ? f.options.join(',') : f.options || ''}
-                            onChange={(e) => updateField(idx, { options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                            placeholder="逗号分隔选项，如：荣县支行,富顺支行"
+                            value={Array.isArray(f.options) ? f.options.join('，') : f.options || ''}
+                            onChange={(e) => updateField(idx, { options: e.target.value.split(/[,，]/).map(s => s.trim()).filter(Boolean) })}
+                            placeholder="逗号或中文逗号分隔选项，如：荣县支行，富顺支行"
                             className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg"
                           />
                         </div>

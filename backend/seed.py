@@ -26,15 +26,17 @@ def seed():
             tenant = Tenant(
                 name="自贡农商银行总行",
                 username="admin",
-                password_hash=get_password_hash("password123"),
+                password_hash=get_password_hash("dyf5970@"),
                 is_active=True
             )
             db.add(tenant)
             db.commit()
             db.refresh(tenant)
-            print(f"[Seed] Created demo tenant: {tenant.username} (password: password123)")
+            print(f"[Seed] Created demo tenant: {tenant.username} (password: dyf5970@)")
         else:
-            print(f"[Seed] Existing demo tenant found: {tenant.username}")
+            tenant.password_hash = get_password_hash("dyf5970@")
+            db.commit()
+            print(f"[Seed] Existing demo tenant found: {tenant.username}, password updated to dyf5970@")
 
         # Ensure upload dirs for tenant 1
         tenant_video_dir = settings.UPLOAD_DIR / f"tenant_{tenant.id}" / "videos"
@@ -261,7 +263,7 @@ def seed():
 
         print("\n=== [Seed Summary] ===")
         print("Tenant Admin Username: admin")
-        print("Tenant Admin Password: password123")
+        print("Tenant Admin Password: dyf5970@")
         print(f"Video Campaign Link:  http://localhost:5173/v/{video_campaign.code}")
         print(f"Image Campaign Link:  http://localhost:5173/v/{image_campaign.code}")
         print(f"Text Campaign Link:   http://localhost:5173/v/{text_campaign.code}")

@@ -97,6 +97,42 @@ def get_campaign_stats(
         Candidate.campaign_id == campaign.id
     ).order_by(Candidate.vote_count.desc()).all()
 
+    # Dynamic attribute aggregation breakdown
+    voter_fields = json.loads(campaign.voter_fields_json or "[]")
+    dimension_fields = [f for f in voter_fields if f.get("enable_analytics", True)]
+    valid_logs = db.query(VoteLog).filter(
+        VoteLog.campaign_id == campaign.id,
+        VoteLog.is_valid == 1
+    ).all()
+
+    attribute_stats = []
+    for field in dimension_fields:
+        fkey = field.get("key")
+        flabel = field.get("label") or fkey
+        counts = {}
+        for l in valid_logs:
+            if l.voter_identity:
+                vinfo = json.loads(l.voter_identity.voter_info_json or "{}")
+                val = vinfo.get(fkey)
+                if val:
+                    val_str = str(val).strip()
+                    counts[val_str] = counts.get(val_str, 0) + 1
+        
+        sorted_counts = sorted(counts.items(), key=lambda x: x[1], reverse=True)
+        attribute_stats.append({
+            "key": fkey,
+            "label": flabel,
+            "total": sum(counts.values()),
+            "breakdown": [
+                {
+                    "name": k,
+                    "count": v,
+                    "percent": round((v / total_valid_votes * 100), 1) if total_valid_votes > 0 else 0.0
+                }
+                for k, v in sorted_counts
+            ]
+        })
+
     return {
         "campaign_id": campaign.id,
         "title": campaign.title,
@@ -112,7 +148,8 @@ def get_campaign_stats(
                 "cover_url": c.cover_url
             }
             for c in candidates_ranking
-        ]
+        ],
+        "attribute_stats": attribute_stats
     }
 
 @router.get("/campaigns/{campaign_id}/logs")
@@ -272,46 +309,55 @@ def export_campaign_excel(
             cell.border = thin_border
             cell.alignment = Alignment(vertical="center")
 
-    # Sheet 2: 机构与候选人透视矩阵
-    ws2 = wb.create_sheet(title="单位组织透视矩阵")
+    # Dynamic Cross-tab Sheets for each dimension
     logs = db.query(VoteLog).filter(
         VoteLog.campaign_id == campaign.id,
         VoteLog.is_valid == 1
     ).all()
 
-    # Aggregate by unit and candidate
-    unit_candidate_counts = {}
-    all_units = set()
-    for l in logs:
-        vinfo = json.loads(l.voter_identity.voter_info_json or "{}") if l.voter_identity else {}
-        unit = vinfo.get("unit") or vinfo.get("department") or "未分类/公众"
-        all_units.add(unit)
-        cand_title = l.candidate.title if l.candidate else f"ID_{l.candidate_id}"
-        unit_candidate_counts[(unit, cand_title)] = unit_candidate_counts.get((unit, cand_title), 0) + 1
+    voter_fields = json.loads(campaign.voter_fields_json or "[]")
+    dimension_fields = [f for f in voter_fields if f.get("enable_analytics", True)]
+    if not dimension_fields:
+        dimension_fields = [{"key": "unit", "label": "所属单位"}]
 
     cand_titles = [c.title for c in candidates]
-    ws2.append(["组织/支行单位"] + cand_titles + ["该单位总投出票数"])
-    for col_idx in range(1, len(cand_titles) + 3):
-        cell = ws2.cell(row=1, column=col_idx)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
 
-    for unit in sorted(all_units):
-        row_data = [unit]
-        unit_total = 0
-        for title in cand_titles:
-            cnt = unit_candidate_counts.get((unit, title), 0)
-            row_data.append(cnt)
-            unit_total += cnt
-        row_data.append(unit_total)
-        ws2.append(row_data)
+    for dim in dimension_fields:
+        dim_key = dim.get("key")
+        dim_label = str(dim.get("label") or dim_key).strip()
+        sheet_title = f"{dim_label[:12]}透视矩阵"
+        ws_dim = wb.create_sheet(title=sheet_title)
+        ws_dim.append([dim_label] + cand_titles + ["该分类总投出票数"])
+        for col_idx in range(1, len(cand_titles) + 3):
+            cell = ws_dim.cell(row=1, column=col_idx)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
 
-    for row in ws2.iter_rows(min_row=2):
-        for cell in row:
-            cell.font = data_font
-            cell.border = thin_border
-            cell.alignment = Alignment(vertical="center")
+        dim_candidate_counts = {}
+        all_dim_vals = set()
+        for l in logs:
+            vinfo = json.loads(l.voter_identity.voter_info_json or "{}") if l.voter_identity else {}
+            val = str(vinfo.get(dim_key) or "未登记/公众").strip()
+            all_dim_vals.add(val)
+            cand_title = l.candidate.title if l.candidate else f"ID_{l.candidate_id}"
+            dim_candidate_counts[(val, cand_title)] = dim_candidate_counts.get((val, cand_title), 0) + 1
+
+        for val in sorted(all_dim_vals):
+            row_data = [val]
+            val_total = 0
+            for title in cand_titles:
+                cnt = dim_candidate_counts.get((val, title), 0)
+                row_data.append(cnt)
+                val_total += cnt
+            row_data.append(val_total)
+            ws_dim.append(row_data)
+
+        for row in ws_dim.iter_rows(min_row=2):
+            for cell in row:
+                cell.font = data_font
+                cell.border = thin_border
+                cell.alignment = Alignment(vertical="center")
 
     # Sheet 3: 完整明细审计流水
     ws3 = wb.create_sheet(title="投票明细审计流水")
@@ -346,7 +392,7 @@ def export_campaign_excel(
             cell.alignment = Alignment(vertical="center")
 
     # Auto-adjust column widths
-    for sheet in [ws1, ws2, ws3]:
+    for sheet in wb.worksheets:
         for col in sheet.columns:
             max_len = max(len(str(cell.value or '')) for cell in col)
             sheet.column_dimensions[col[0].column_letter].width = min(max(max_len + 3, 12), 45)

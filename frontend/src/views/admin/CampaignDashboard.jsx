@@ -13,7 +13,8 @@ import {
   FileText,
   Sparkles,
   Trophy,
-  Settings
+  Settings,
+  Layers
 } from 'lucide-react';
 
 export default function CampaignDashboard() {
@@ -272,6 +273,60 @@ export default function CampaignDashboard() {
           })}
         </div>
       </div>
+
+      {/* Dynamic Attribute Classification & Breakdown Section */}
+      {stats.attribute_stats && stats.attribute_stats.length > 0 && (
+        <div className="space-y-6">
+          {stats.attribute_stats.map((attr) => (
+            <div key={attr.key} className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-8 space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-indigo-600" />
+                  <h2 className="text-lg font-bold text-slate-900">
+                    按【{attr.label}】分类统计汇总
+                  </h2>
+                </div>
+                <span className="text-xs text-slate-400 font-medium">
+                  该属性参与总投出: <strong className="text-slate-800">{attr.total}</strong> 票
+                </span>
+              </div>
+
+              {attr.breakdown.length === 0 ? (
+                <p className="text-xs text-slate-400 py-6 text-center border border-dashed rounded-xl">
+                  暂无该属性维度的投票登记数据
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {attr.breakdown.map((item, bIdx) => (
+                    <div key={bIdx} className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-sm text-slate-800 truncate" title={item.name}>
+                          {item.name}
+                        </span>
+                        <span className="font-extrabold text-blue-600 text-sm flex-shrink-0">
+                          {item.count} <span className="text-xs font-normal text-slate-400">票</span>
+                        </span>
+                      </div>
+
+                      <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-indigo-600 h-2 rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${item.percent}%` }}
+                        ></div>
+                      </div>
+
+                      <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
+                        <span>占全场有效票</span>
+                        <span className="font-medium text-slate-600">{item.percent}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

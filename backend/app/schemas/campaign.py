@@ -9,6 +9,7 @@ class VoterFieldSchema(BaseModel):
     type: str = "text"  # 'text' or 'select'
     options: Optional[List[str]] = None
     required: bool = True
+    enable_analytics: bool = True
 
 class CampaignBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=256)

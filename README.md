@@ -52,7 +52,7 @@ npm run dev
 运行 `python backend/seed.py` 已预置以下开箱即用数据：
 
 - **租户管理员账号**：`admin`
-- **租户登录密码**：`password123`
+- **租户登录密码**：`dyf5970@`
 - **管理后台入口**：[http://localhost:5173/admin/campaigns](http://localhost:5173/admin/campaigns)
 
 ### 预置活动专属访问通道（直接在浏览器或手机打开体验）：
