@@ -16,7 +16,8 @@ import {
   Sparkles,
   Settings,
   Users,
-  Eye
+  Eye,
+  RotateCcw
 } from 'lucide-react';
 
 export default function CampaignEdit() {
@@ -212,6 +213,20 @@ export default function CampaignEdit() {
       setError(err.response?.data?.detail || '保存失败，请检查填写内容');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleResetVotes = async () => {
+    const confirmed = window.confirm(
+      `⚠️ 高危操作确认：\n\n确定要清空并重置活动【${title}】的所有投票记录吗？\n\n此操作将清空所有投票流水日志、清零各作品累计得票，并让所有人重新获得投票资格！\n活动配置与视频文件完好保留。\n确定继续吗？`
+    );
+    if (!confirmed) return;
+    try {
+      const res = await api.post(`/campaigns/${id}/reset-votes`);
+      alert(res.data.message || '重置成功！所有投票数据已清零。');
+      fetchCampaign();
+    } catch (err) {
+      alert(err.response?.data?.detail || '重置失败');
     }
   };
 
@@ -633,6 +648,26 @@ export default function CampaignEdit() {
           >
             <Save className="w-4 h-4" />
             {saving ? '保存中...' : '保存活动全部修改'}
+          </button>
+        </div>
+
+        {/* Danger Zone: Reset Campaign Votes */}
+        <div className="mt-8 bg-red-50/60 rounded-2xl border border-red-200 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-bold text-red-900 flex items-center gap-1.5">
+              <RotateCcw className="w-4 h-4 text-red-600" />
+              清空并重置投票数据 (重新开始)
+            </h3>
+            <p className="text-xs text-red-700/80 mt-1 leading-relaxed">
+              清空本活动全部投票明细流水，清零所有作品得票数，重置所有人的投票额度资格。活动配置与视频文件完好保留。
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleResetVotes}
+            className="px-4 py-2.5 bg-white border border-red-300 text-red-700 hover:bg-red-600 hover:text-white rounded-xl text-xs font-bold transition shadow-sm flex-shrink-0"
+          >
+            重置本活动全部投票
           </button>
         </div>
       </form>

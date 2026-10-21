@@ -5,10 +5,11 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.models.entities import Tenant, Campaign, Candidate
+from app.models.entities import Tenant, Campaign, Candidate, VoterIdentity, VoteLog
 from app.schemas.campaign import CampaignCreate, CampaignUpdate, CampaignOut
 from app.schemas.candidate import CandidateCreate, CandidateUpdate, CandidateOut
 from app.core.deps import get_current_tenant
+from app.services.broadcaster import broadcaster
 
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
@@ -141,6 +142,47 @@ def delete_campaign(
     db.delete(campaign)
     db.commit()
     return None
+
+@router.post("/{campaign_id}/reset-votes")
+async def reset_campaign_votes_endpoint(
+    campaign_id: int,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    db: Session = Depends(get_db)
+):
+    campaign = db.query(Campaign).filter(
+        Campaign.id == campaign_id,
+        Campaign.tenant_id == current_tenant.id
+    ).first()
+    if not campaign:
+        raise HTTPException(status_code=404, detail="活动未找到")
+
+    deleted_logs = db.query(VoteLog).filter(VoteLog.campaign_id == campaign.id).delete()
+    deleted_identities = db.query(VoterIdentity).filter(VoterIdentity.campaign_id == campaign.id).delete()
+    
+    candidates = db.query(Candidate).filter(Candidate.campaign_id == campaign.id).all()
+    for cand in candidates:
+        cand.vote_count = 0
+
+    db.commit()
+
+    # Broadcast reset event to live dashboard
+    await broadcaster.broadcast(
+        campaign.id,
+        {
+            "event": "votes_reset",
+            "campaign_id": campaign.id,
+            "tallies": {c.id: 0 for c in candidates},
+            "total_votes": 0
+        }
+    )
+
+    return {
+        "success": True,
+        "message": f"活动【{campaign.title}】的全部投票数据已成功重置清零",
+        "deleted_logs": deleted_logs,
+        "deleted_identities": deleted_identities,
+        "reset_candidates": len(candidates)
+    }
 
 # Candidate Sub-endpoints
 @router.post("/{campaign_id}/candidates", response_model=CandidateOut, status_code=status.HTTP_201_CREATED)

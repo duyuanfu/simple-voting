@@ -104,6 +104,22 @@ export default function VoteAudit() {
     }
   };
 
+  const handleResetVotes = async () => {
+    if (!campaign) return;
+    const confirmed = window.confirm(
+      `⚠️ 高危操作确认：\n\n您确定要清空并重置活动【${campaign.title}】的全部投票数据吗？\n\n此操作将：\n1. 清空所有投票明细流水日志\n2. 清零所有作品的累计得票\n3. 重置所有投票人的配额（允许所有人重新参与投票）\n\n活动本身、候选作品和视频资源将完全保留。\n确定继续重置吗？`
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await api.post(`/campaigns/${id}/reset-votes`);
+      alert(res.data.message || '重置成功！所有投票数据已清零。');
+      fetchLogs();
+    } catch (err) {
+      alert(err.response?.data?.detail || '重置失败');
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header */}
@@ -122,14 +138,24 @@ export default function VoteAudit() {
           </h1>
         </div>
 
-        <button
-          onClick={handleExportExcel}
-          disabled={exporting}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-md shadow-emerald-500/20 transition disabled:opacity-50"
-        >
-          <FileSpreadsheet className="w-4 h-4" />
-          {exporting ? '生成报表中...' : '一键导出标准多 Sheet Excel'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleResetVotes}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-xs border border-red-200 transition shadow-sm"
+            title="清空流水并让所有作品票数归零"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-red-600" />
+            重置全部投票数据
+          </button>
+          <button
+            onClick={handleExportExcel}
+            disabled={exporting}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md shadow-emerald-500/20 transition disabled:opacity-50"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            {exporting ? '生成报表中...' : '一键导出标准多 Sheet Excel'}
+          </button>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
