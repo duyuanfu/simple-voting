@@ -49,4 +49,4 @@ ENV PORT=8090
 EXPOSE 8090
 
 # Seed demo data if database is new, then start FastAPI server
-CMD ["sh", "-c", "python seed.py && uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "python seed.py; exec uvicorn main:app --host 0.0.0.0 --port ${PORT}"]

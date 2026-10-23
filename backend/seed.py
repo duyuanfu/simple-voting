@@ -1,15 +1,32 @@
 import os
 import shutil
 import json
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 from pathlib import Path
 from datetime import datetime, timedelta
+from sqlalchemy import text
 from app.db.session import engine, SessionLocal, Base
 from app.models.entities import Tenant, Campaign, Candidate, VoterIdentity, VoteLog
 from app.core.security import get_password_hash
 from app.core.config import settings
 
+def run_migrations():
+    with engine.connect() as conn:
+        for col_sql in [
+            "ALTER TABLE campaigns ADD COLUMN vote_mode TEXT DEFAULT 'batch'",
+            "ALTER TABLE campaigns ADD COLUMN quota_type TEXT DEFAULT 'lifecycle'"
+        ]:
+            try:
+                conn.execute(text(col_sql))
+                conn.commit()
+            except Exception:
+                pass
+
 def seed():
     Base.metadata.create_all(bind=engine)
+    run_migrations()
     db = SessionLocal()
 
     # Robust docs resolution (works locally and in Docker)
@@ -274,4 +291,7 @@ def seed():
         db.close()
 
 if __name__ == "__main__":
-    seed()
+    try:
+        seed()
+    except Exception as e:
+        print(f"[Seed Warning] Error running seed (will continue starting server): {e}")
