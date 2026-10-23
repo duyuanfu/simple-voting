@@ -16,7 +16,9 @@ import {
   ListPlus,
   Sparkles,
   Link as LinkIcon,
-  Copy
+  Copy,
+  ShieldCheck,
+  Calendar
 } from 'lucide-react';
 
 export default function CampaignWizard() {
@@ -387,22 +389,59 @@ export default function CampaignWizard() {
             <p className="text-sm text-slate-500 mt-1">配置每人可投总票数、单IP保护阈值，以及投票人所需填报的信息</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50/80 p-5 rounded-2xl border border-slate-200/60">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">投票周期规则 *</label>
-              <select
-                value={quotaType}
-                onChange={(e) => setQuotaType(e.target.value)}
-                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+          {/* Visual Quota Cycle Selector Cards */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
+              1. 投票周期规则（额度刷新模式）*
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div
+                onClick={() => setQuotaType('lifecycle')}
+                className={`p-4 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3.5 ${
+                  quotaType === 'lifecycle'
+                    ? 'border-blue-600 bg-blue-50/50 ring-2 ring-blue-500/20 shadow-sm'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                }`}
               >
-                <option value="lifecycle">全周期固定额度 (仅投一轮)</option>
-                <option value="daily">每日重置额度 (每天可投)</option>
-              </select>
-              <p className="text-[11px] text-slate-400 mt-1">
-                {quotaType === 'daily' ? '用户每天可投 N 票，次日 00:00 自动刷新' : '用户在整个活动期间总共最多投 N 票'}
-              </p>
-            </div>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${quotaType === 'lifecycle' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500'}`}>
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-slate-900">全周期固定额度</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">仅投一轮</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    每位用户在整个活动期间总共最多投 {maxVotes} 票，投完即刻永久耗尽，适合严肃评选。
+                  </p>
+                </div>
+              </div>
 
+              <div
+                onClick={() => setQuotaType('daily')}
+                className={`p-4 rounded-2xl border-2 cursor-pointer transition flex items-start gap-3.5 ${
+                  quotaType === 'daily'
+                    ? 'border-emerald-600 bg-emerald-50/50 ring-2 ring-emerald-500/20 shadow-sm'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${quotaType === 'daily' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500'}`}>
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm text-slate-900">每日重置额度</span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">每天可投</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    每位用户每天拥有 {maxVotes} 票，当日不可重投同一作品，次日 00:00 自动刷新满额！
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50/80 p-5 rounded-2xl border border-slate-200/60">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 {quotaType === 'daily' ? '每人每天投票额度 (N 票) *' : '每人最多总票数 (N 票) *'}
