@@ -85,12 +85,20 @@ export default function CampaignHeader() {
         {/* Rules & Quota Summary Capsules */}
         <div className="mt-4 flex flex-wrap items-center gap-2 justify-center sm:justify-start">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-medium">
-            <span>全周期限投: 每人 {campaign.max_votes_per_person} 票</span>
+            <span>
+              {campaign.quota_type === 'daily'
+                ? `每日限投: 每人每天 ${campaign.max_votes_per_person} 票`
+                : `全周期限投: 每人 ${campaign.max_votes_per_person} 票`}
+            </span>
           </div>
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
             <CheckCircle className="w-3.5 h-3.5" />
-            <span>已投 {votedCandidateIds.length} 票，还可投 {remainingVotes} 票</span>
+            <span>
+              {campaign.quota_type === 'daily'
+                ? `今日已投 ${votedCandidateIds.length} 票，今日还可投 ${remainingVotes} 票`
+                : `已投 ${votedCandidateIds.length} 票，还可投 ${remainingVotes} 票`}
+            </span>
           </div>
 
           {campaign.is_realname && (

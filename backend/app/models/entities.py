@@ -35,6 +35,7 @@ class Campaign(Base):
     
     # Rules
     max_votes_per_person = Column(Integer, default=1)   # N votes per person
+    quota_type = Column(String(32), default="lifecycle")# 'lifecycle' (全周期) or 'daily' (每日重置)
     vote_mode = Column(String(32), default="batch")     # 'batch' (多选统一提交) or 'instant' (逐项即时投)
     is_realname = Column(Boolean, default=False)
     voter_fields_json = Column(Text, default="[]")       # JSON array of field definitions

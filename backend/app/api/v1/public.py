@@ -53,6 +53,7 @@ def get_public_campaign(code: str, db: Session = Depends(get_db)):
         "start_time": campaign.start_time,
         "end_time": campaign.end_time,
         "max_votes_per_person": campaign.max_votes_per_person,
+        "quota_type": getattr(campaign, 'quota_type', 'lifecycle') or 'lifecycle',
         "vote_mode": getattr(campaign, 'vote_mode', 'batch') or 'batch',
         "is_realname": campaign.is_realname,
         "voter_fields": json.loads(campaign.voter_fields_json or "[]"),
@@ -100,13 +101,18 @@ def get_voter_status(
             saved_extra_info={}
         )
 
-    # Find valid voted candidates
-    valid_logs = db.query(VoteLog).filter(
+    # Find valid voted candidates (supporting both lifecycle and daily quota reset)
+    is_daily = getattr(campaign, 'quota_type', 'lifecycle') == 'daily'
+    valid_logs_query = db.query(VoteLog).filter(
         VoteLog.campaign_id == campaign.id,
         VoteLog.identity_id == identity.id,
         VoteLog.is_valid == 1
-    ).all()
+    )
+    if is_daily:
+        today_start = datetime.combine(date.today(), datetime.min.time())
+        valid_logs_query = valid_logs_query.filter(VoteLog.created_at >= today_start)
 
+    valid_logs = valid_logs_query.all()
     voted_ids = [l.candidate_id for l in valid_logs]
     saved_extra = json.loads(identity.voter_info_json or "{}")
 
@@ -206,28 +212,36 @@ async def submit_vote(
         VoterIdentity.identity_key == identity_key
     ).first()
 
+    is_daily = getattr(campaign, 'quota_type', 'lifecycle') == 'daily'
     already_voted_candidates = set()
     if identity:
-        valid_logs = db.query(VoteLog).filter(
+        valid_logs_query = db.query(VoteLog).filter(
             VoteLog.campaign_id == campaign.id,
             VoteLog.identity_id == identity.id,
             VoteLog.is_valid == 1
-        ).all()
+        )
+        if is_daily:
+            today_start = datetime.combine(date.today(), datetime.min.time())
+            valid_logs_query = valid_logs_query.filter(VoteLog.created_at >= today_start)
+
+        valid_logs = valid_logs_query.all()
         already_voted_candidates = {l.candidate_id for l in valid_logs}
 
-    # Rule 4.A: Cannot vote for the same candidate twice!
+    # Rule 4.A: Cannot vote for the same candidate twice within the quota period!
     for cid in candidate_ids:
         if cid in already_voted_candidates:
             cand = next((c for c in candidates if c.id == cid), None)
             name = cand.title if cand else "候选项目"
-            raise HTTPException(status_code=400, detail=f"您已为【{name}】投过票，不可重复支持同一项目")
+            msg = f"您今日已为【{name}】投过票，请明日再来支持！" if is_daily else f"您已为【{name}】投过票，不可重复支持同一项目"
+            raise HTTPException(status_code=400, detail=msg)
 
     # Quota check
     if len(already_voted_candidates) + len(candidate_ids) > campaign.max_votes_per_person:
         remaining = max(0, campaign.max_votes_per_person - len(already_voted_candidates))
+        quota_desc = "今日" if is_daily else ""
         raise HTTPException(
             status_code=400,
-            detail=f"投票超出额度限制！您最多还能投 {remaining} 票，本次选择了 {len(candidate_ids)} 项"
+            detail=f"投票超出{quota_desc}额度限制！您{quota_desc}最多还能投 {remaining} 票，本次选择了 {len(candidate_ids)} 项"
         )
 
     # 7. Atomic Write Transaction

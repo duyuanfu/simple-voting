@@ -148,7 +148,9 @@ export default function CampaignList() {
                     </div>
                     <div className="bg-slate-50 p-2 rounded-lg">
                       <span className="block text-xs text-slate-400">票制额度</span>
-                      <span className="font-semibold text-slate-800 text-sm">每人{c.max_votes_per_person}票</span>
+                      <span className="font-semibold text-slate-800 text-sm">
+                        {c.quota_type === 'daily' ? `每日${c.max_votes_per_person}票` : `每人${c.max_votes_per_person}票`}
+                      </span>
                     </div>
                   </div>
 

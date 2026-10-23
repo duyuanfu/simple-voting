@@ -41,6 +41,7 @@ export default function CampaignEdit() {
 
   // Rules State
   const [maxVotes, setMaxVotes] = useState(1);
+  const [quotaType, setQuotaType] = useState('lifecycle');
   const [voteMode, setVoteMode] = useState('batch');
   const [ipDailyLimit, setIpDailyLimit] = useState(50);
   const [isRealname, setIsRealname] = useState(true);
@@ -75,6 +76,7 @@ export default function CampaignEdit() {
       setStartTime(data.start_time ? data.start_time.replace(' ', 'T').substring(0, 16) : '');
       setEndTime(data.end_time ? data.end_time.replace(' ', 'T').substring(0, 16) : '');
       setMaxVotes(data.max_votes_per_person || 1);
+      setQuotaType(data.quota_type || 'lifecycle');
       setVoteMode(data.vote_mode || 'batch');
       setIpDailyLimit(data.ip_daily_limit || 50);
       setIsRealname(data.is_realname);
@@ -200,6 +202,7 @@ export default function CampaignEdit() {
         start_time: startTime ? startTime.replace('T', ' ') + (startTime.length === 16 ? ':00' : '') : null,
         end_time: endTime ? endTime.replace('T', ' ') + (endTime.length === 16 ? ':00' : '') : null,
         max_votes_per_person: parseInt(maxVotes, 10),
+        quota_type: quotaType,
         vote_mode: voteMode,
         is_realname: isRealname,
         voter_fields: isRealname ? voterFields : [],
@@ -393,9 +396,26 @@ export default function CampaignEdit() {
             投票规则与交互方式
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">每人最多总票数 (N 票) *</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">投票周期规则 *</label>
+              <select
+                value={quotaType}
+                onChange={(e) => setQuotaType(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+              >
+                <option value="lifecycle">全周期固定额度 (仅投一轮)</option>
+                <option value="daily">每日重置额度 (每天可投)</option>
+              </select>
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                {quotaType === 'daily' ? '用户每天可投 N 票，次日 00:00 自动刷新' : '用户在整个活动期间总共最多投 N 票'}
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                {quotaType === 'daily' ? '每人每天投票额度 (N 票) *' : '每人最多总票数 (N 票) *'}
+              </label>
               <input
                 type="number"
                 min={1}
@@ -404,7 +424,9 @@ export default function CampaignEdit() {
                 onChange={(e) => setMaxVotes(Math.max(1, parseInt(e.target.value) || 1))}
                 className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
               />
-              <span className="text-[11px] text-slate-400 mt-1 block">单作品限投 1 票</span>
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                {quotaType === 'daily' ? `每天最多选 ${maxVotes} 个作品 (当日不可重投)` : `全周期最多选 ${maxVotes} 个作品`}
+              </span>
             </div>
 
             <div>

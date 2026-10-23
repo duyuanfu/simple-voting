@@ -36,6 +36,7 @@ export default function CampaignWizard() {
 
   // Step 2: Rules & Dynamic Fields
   const [maxVotes, setMaxVotes] = useState(1);
+  const [quotaType, setQuotaType] = useState('lifecycle');
   const [voteMode, setVoteMode] = useState('batch');
   const [ipDailyLimit, setIpDailyLimit] = useState(50);
   const [isRealname, setIsRealname] = useState(true);
@@ -163,6 +164,7 @@ export default function CampaignWizard() {
         start_time: startTime ? startTime.replace('T', ' ') + (startTime.length === 16 ? ':00' : '') : null,
         end_time: endTime ? endTime.replace('T', ' ') + (endTime.length === 16 ? ':00' : '') : null,
         max_votes_per_person: parseInt(maxVotes, 10),
+        quota_type: quotaType,
         vote_mode: voteMode,
         is_realname: isRealname,
         voter_fields: isRealname ? voterFields : [],
@@ -385,49 +387,66 @@ export default function CampaignWizard() {
             <p className="text-sm text-slate-500 mt-1">配置每人可投总票数、单IP保护阈值，以及投票人所需填报的信息</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-slate-50/80 p-5 rounded-2xl border border-slate-200/60">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50/80 p-5 rounded-2xl border border-slate-200/60">
             <div>
-              <label className="block text-sm font-medium text-slate-700">每人最多投票额度 (N 票) *</label>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={maxVotes}
-                onChange={(e) => setMaxVotes(Math.max(1, parseInt(e.target.value) || 1))}
-                className="mt-1 block w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold"
-              />
-              <p className="text-xs text-slate-500 mt-1.5">
-                ★ 规则4.A：每人全周期最多投 {maxVotes} 票，且<strong>不可重复投给同一作品</strong>。
+              <label className="block text-xs font-semibold text-slate-700 mb-1">投票周期规则 *</label>
+              <select
+                value={quotaType}
+                onChange={(e) => setQuotaType(e.target.value)}
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+              >
+                <option value="lifecycle">全周期固定额度 (仅投一轮)</option>
+                <option value="daily">每日重置额度 (每天可投)</option>
+              </select>
+              <p className="text-[11px] text-slate-400 mt-1">
+                {quotaType === 'daily' ? '用户每天可投 N 票，次日 00:00 自动刷新' : '用户在整个活动期间总共最多投 N 票'}
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">投票交互方式 *</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                {quotaType === 'daily' ? '每人每天投票额度 (N 票) *' : '每人最多总票数 (N 票) *'}
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={maxVotes}
+                onChange={(e) => setMaxVotes(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                {quotaType === 'daily' ? `每天最多选 ${maxVotes} 个作品 (当日不可重投)` : `全周期最多选 ${maxVotes} 个作品`}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">投票交互方式 *</label>
               <select
                 value={voteMode}
                 onChange={(e) => setVoteMode(e.target.value)}
-                className="mt-1 block w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-blue-600"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-blue-600"
               >
                 <option value="batch">勾选多选后统一提交 (购物车模式)</option>
                 <option value="instant">即时逐项投票 (边看边投)</option>
               </select>
-              <p className="text-xs text-slate-500 mt-1.5">
-                {voteMode === 'batch' ? '推荐一人多票：候选人带复选框，底部悬浮条统一提交' : '适合一人一票：点击即时投出'}
+              <p className="text-[11px] text-slate-400 mt-1">
+                {voteMode === 'batch' ? '支持卡片复选，底部悬浮条统一提交' : '点击按钮即时单次投出'}
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">同 IP 每日防刷保护上限 (票) *</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">同 IP 每日防刷上限 *</label>
               <input
                 type="number"
                 min={1}
                 max={1000}
                 value={ipDailyLimit}
                 onChange={(e) => setIpDailyLimit(parseInt(e.target.value) || 50)}
-                className="mt-1 block w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold"
+                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
               />
-              <p className="text-xs text-slate-500 mt-1.5">
-                同一出口 IP 每天累计最大有效票数，超出后触发网络保护提示。
+              <p className="text-[11px] text-slate-400 mt-1">
+                同一出口 IP 每天累计最大有效票数
               </p>
             </div>
           </div>

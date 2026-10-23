@@ -21,6 +21,7 @@ class CampaignBase(BaseModel):
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     max_votes_per_person: int = Field(1, ge=1)
+    quota_type: str = Field("lifecycle", pattern="^(lifecycle|daily)$")
     vote_mode: str = Field("batch", pattern="^(batch|instant)$")
     is_realname: bool = False
     voter_fields: Optional[List[VoterFieldSchema]] = []
@@ -39,6 +40,7 @@ class CampaignUpdate(BaseModel):
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     max_votes_per_person: Optional[int] = None
+    quota_type: Optional[str] = None
     vote_mode: Optional[str] = None
     is_realname: Optional[bool] = None
     voter_fields: Optional[List[VoterFieldSchema]] = None
@@ -79,6 +81,7 @@ class PublicCampaignOut(BaseModel):
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     max_votes_per_person: int
+    quota_type: str = "lifecycle"
     vote_mode: str = "batch"
     is_realname: bool
     voter_fields: List[VoterFieldSchema] = []
