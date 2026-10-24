@@ -10,6 +10,7 @@ from app.models.entities import Campaign, Candidate, VoterIdentity, VoteLog
 from app.schemas.campaign import PublicCampaignOut, PublicCandidateOut
 from app.schemas.voting import VoteSubmitRequest, VoteSubmitResponse, VoterStatusResponse
 from app.core.deps import get_client_ip, check_ip_rate_limit
+from app.core.security import decode_access_token
 from app.services.broadcaster import broadcaster
 
 router = APIRouter(prefix="/public", tags=["public"])
@@ -32,10 +33,39 @@ def compute_identity_key(campaign: Campaign, visitor_id: str, extra_info: Dict[s
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
 @router.get("/campaigns/{code}", response_model=PublicCampaignOut)
-def get_public_campaign(code: str, db: Session = Depends(get_db)):
+def get_public_campaign(code: str, request: Request, db: Session = Depends(get_db)):
     campaign = db.query(Campaign).filter(Campaign.code == code).first()
     if not campaign:
         raise HTTPException(status_code=404, detail="活动不存在或链接已失效")
+
+    # Check if request has admin tenant token for preview
+    auth_header = request.headers.get("Authorization", "")
+    is_admin = False
+    if auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        payload = decode_access_token(token)
+        if payload and str(payload.get("sub")) == str(campaign.tenant_id):
+            is_admin = True
+
+    # If draft and not admin: hide candidates to protect unpublished draft content
+    if campaign.status == "draft" and not is_admin:
+        return {
+            "code": campaign.code,
+            "title": campaign.title,
+            "subtitle": campaign.subtitle,
+            "description": "活动处于草稿筹备阶段，尚未对外正式发布，敬请期待！",
+            "template_type": campaign.template_type,
+            "banner_url": campaign.banner_url,
+            "status": "draft",
+            "start_time": campaign.start_time,
+            "end_time": campaign.end_time,
+            "max_votes_per_person": campaign.max_votes_per_person,
+            "quota_type": getattr(campaign, 'quota_type', 'lifecycle') or 'lifecycle',
+            "vote_mode": getattr(campaign, 'vote_mode', 'batch') or 'batch',
+            "is_realname": campaign.is_realname,
+            "voter_fields": [],
+            "candidates": []
+        }
 
     # Get active candidates ordered by display_order
     active_candidates = [

@@ -5,10 +5,11 @@ import CampaignHeader from './components/CampaignHeader';
 import VideoTemplate from './templates/VideoTemplate';
 import ImageTemplate from './templates/ImageTemplate';
 import TextTemplate from './templates/TextTemplate';
-import { AlertCircle, Vote } from 'lucide-react';
+import { AlertCircle, Vote, FileEdit, ShieldAlert } from 'lucide-react';
 
 function VoterContent() {
   const { campaign, loading, error } = useVoting();
+  const isPreview = Boolean(localStorage.getItem('tenant_token'));
 
   if (loading) {
     return (
@@ -39,9 +40,37 @@ function VoterContent() {
     );
   }
 
+  // If campaign is in draft and visitor is NOT the authenticated admin
+  if (campaign.status === 'draft' && !isPreview) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-slate-200 text-center shadow-xl">
+          <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <FileEdit className="w-8 h-8" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900 mb-2">活动筹备中，尚未正式发布</h2>
+          <p className="text-xs text-slate-600 mb-6 leading-relaxed">
+            【{campaign.title}】当前处于<strong>草稿编辑阶段</strong>，组织方尚未正式对外公开发布，请耐心等待！
+          </p>
+          <div className="text-[11px] text-slate-400 border-t border-slate-100 pt-4">
+            若您是活动管理员，请登录管理后台将活动状态切换为【进行中】
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between">
       <div>
+        {/* Admin Preview Mode Banner for Drafts */}
+        {campaign.status === 'draft' && isPreview && (
+          <div className="bg-amber-500 text-white text-xs font-bold py-2 px-4 text-center sticky top-0 z-50 flex items-center justify-center gap-2 shadow-md">
+            <FileEdit className="w-4 h-4" />
+            <span>【管理员预览模式】当前活动处于草稿中，外部公众访客无法查阅作品，仅您可预览效果</span>
+          </div>
+        )}
+
         <CampaignHeader />
 
         <main className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
